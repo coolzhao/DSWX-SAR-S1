@@ -310,8 +310,11 @@ def save_dswx_product(wtr, output_file, geotransform,
     gdal_ds.SetProjection(projection)
 
     gdal_band = gdal_ds.GetRasterBand(1)
-    gdal_band.WriteArray(wtr)
+    # Set no-data before writing. GDAL (3.10) skips writing all-zero blocks
+    # of a new GTiff while no no-data value is set; setting 255 afterwards
+    # makes those skipped blocks read back as 255 instead of 0.
     gdal_band.SetNoDataValue(band_value_dict['no_data'])
+    gdal_band.WriteArray(wtr)
     gdal_band.SetMetadata(metadata)
     # set color table and color interpretation
     if not is_diag:
@@ -1492,9 +1495,10 @@ def _save_array(input_array, output_file, dswx_metadata_dict, geotransform,
     gdal_ds.SetGeoTransform(geotransform)
     gdal_ds.SetProjection(projection)
     raster_band = gdal_ds.GetRasterBand(1)
-    raster_band.WriteArray(input_array)
+    # Set no-data before writing (see save_dswx_product).
     if no_data_value is not None:
         raster_band.SetNoDataValue(no_data_value)
+    raster_band.WriteArray(input_array)
 
     if description is not None:
         raster_band.SetDescription(description)
